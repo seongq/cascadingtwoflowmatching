@@ -3,22 +3,18 @@ from argparse import ArgumentParser
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.plugins import DDPPlugin
-# from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.loggers import WandbLogger, TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks import EarlyStopping
 
-import wandb
 
 from flowmse.backbones.shared import BackboneRegistry
 from flowmse.data_module import SpecsDataModule
 from flowmse.odes import ODERegistry
-from flowmse.model import VFModel_Finetuning
+from flowmse.model import CTFSE_MODEL
 
 import torch
 torch.set_num_threads(5)
 torch.cuda.empty_cache()
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 def get_argparse_groups(parser):
      groups = {}
      for group in parser._action_groups:
@@ -43,8 +39,8 @@ if __name__ == '__main__':
      backbone_cls = BackboneRegistry.get_by_name(temp_args.backbone)
      ode_class = ODERegistry.get_by_name(temp_args.ode)
      parser = pl.Trainer.add_argparse_args(parser)
-     VFModel_Finetuning.add_argparse_args(
-          parser.add_argument_group("VFModel_Finetuning", description=VFModel_Finetuning.__name__))
+     CTFSE_MODEL.add_argparse_args(
+          parser.add_argument_group("CTFSE_MODEL", description=CTFSE_MODEL.__name__))
      ode_class.add_argparse_args(
           parser.add_argument_group("ODE", description=ode_class.__name__))
      backbone_cls.add_argparse_args(
@@ -58,48 +54,35 @@ if __name__ == '__main__':
      arg_groups = get_argparse_groups(parser)
      dataset = os.path.basename(os.path.normpath(args.base_dir))
      # Initialize logger, trainer, model, datamodule
-     model = VFModel_Finetuning(
+     model = CTFSE_MODEL(
           backbone=args.backbone, ode=args.ode, data_module_cls=data_module_cls,
           **{
-               **vars(arg_groups['VFModel_Finetuning']),
+               **vars(arg_groups['CTFSE_MODEL']),
                **vars(arg_groups['ODE']),
                **vars(arg_groups['Backbone']),
                **vars(arg_groups['DataModule'])
           }
      )
-     # Set up logger configuration
-     if args.no_wandb:
-          logger = TensorBoardLogger(save_dir="logs", name="tensorboard")
-     else:
-          if ode_class.__name__ == "FLOWMATCHING":
-               name_save_dir_path = f"{args.mode}_flow_matching_dataset_{dataset}_sigma_min_{args.sigma_min}_sigma_max_{args.sigma_max}_T_rev_{args.T_rev}_t_eps_{args.t_eps}"
-               logger = WandbLogger(project=f"{ode_class.__name__}_first_second_flow_matching", log_model=True, save_dir="logs", name=name_save_dir_path)
-          
-          
-          else:
-               raise ValueError(f"{ode_class.__name__}에 대한 configuration이 만들어지지 않았음")
-          logger.experiment.log_code(".")
+    
+    
+     name_save_dir_path = f"CTFSE_dataset_{dataset}_sigma_min_{args.sigma_min}_sigma_max_{args.sigma_max}_T_rev_{args.T_rev}_t_eps_{args.t_eps}"
+     logger = WandbLogger(project=f"CTFSE", log_model=True, save_dir="logs", name=name_save_dir_path)
+    
 
      # Set up callbacks for logger
 
      model_dirpath = f"logs/{name_save_dir_path}_{logger.version}"
-     # callbacks = [ModelCheckpoint(dirpath=model_dirpath, save_last=True, filename='{epoch}-last')]
-
      checkpoint_callback_last = ModelCheckpoint(dirpath=model_dirpath,
-          save_last=True, filename='{epoch}-last')
-     checkpoint_callback_pesq = ModelCheckpoint(dirpath=model_dirpath,          save_top_k=1, monitor="pesq", mode="max", filename='{epoch}-{pesq:.2f}')
-     checkpoint_callback_valid_loss = ModelCheckpoint(dirpath=model_dirpath,  save_top_k=1, monitor="valid_loss", mode="min", filename='{epoch}-{valid_loss:.2f}')
-     checkpoint_callback_si_sdr = ModelCheckpoint(dirpath=model_dirpath, save_top_k=1, monitor="si_sdr", mode="max", filename='{epoch}-{si_sdr:.2f}')
-     # callbacks += [checkpoint_callback_pesq, checkpoint_callback_si_sdr] 
-     early_stopping_callback = EarlyStopping(monitor="valid_loss",patience=50, mode="min",verbose=True)
-     callbacks = [checkpoint_callback_valid_loss, checkpoint_callback_pesq, early_stopping_callback, checkpoint_callback_last, checkpoint_callback_si_sdr]
-     # callbacks = [checkpoint_callback_last, checkpoint_callback_pesq, checkpoint_callback_si_sdr]
+     save_last=True, filename='{epoch}-last')
+     checkpoint_callback_valid_loss = ModelCheckpoint(dirpath=model_dirpath,  save_top_k=1000, monitor="valid_loss", mode="min", filename='{epoch}-{valid_loss:.2f}')
+     callbacks = [checkpoint_callback_valid_loss,  checkpoint_callback_last]
+     
 
      # Initialize the Trainer and the DataModule
      trainer = pl.Trainer.from_argparse_args(
           arg_groups['pl.Trainer'],
-          accelerator='gpu', strategy=DDPPlugin(find_unused_parameters=False), gpus=[5], auto_select_gpus=False, 
-          logger=logger, log_every_n_steps=10, num_sanity_val_steps=1, max_epochs=350,
+          accelerator='gpu', strategy=DDPPlugin(find_unused_parameters=False), gpus=[0,1], auto_select_gpus=False, 
+          logger=logger, log_every_n_steps=10, num_sanity_val_steps=1, max_epochs=1000,
           callbacks=callbacks
      )
 

@@ -11,35 +11,22 @@ from argparse import ArgumentParser
 from os.path import join
 import pandas as pd
 
-from flowmse.data_module import SpecsDataModule
-from flowmse.model import VFModel_Finetuning, VFModel_Finetuning_SGMSE_CRP
-import pdb
+from flowmse.model import CTFSE_MODEL
 import os
 from flowmse.util.other import pad_spec
-from flowmse.sampling import get_white_box_solver
 from utils import energy_ratios, ensure_dir, print_mean_std
 
-import pdb
-torch.set_num_threads(5)
-torch.cuda.empty_cache()
+
 if __name__ == '__main__':
     parser = ArgumentParser()
    
 
-    parser.add_argument("--odesolver", type=str,
-                        default="euler", help="euler")
-    parser.add_argument("--condition", type=str, choices=('noisy', 'mixture', 'enhanced'), required=True)
     parser.add_argument("--reverse_starting_point", type=float, default=1.0, help="Starting point for the reverse SDE.")
     parser.add_argument("--reverse_end_point", type=float, default=0.03)
-    
     parser.add_argument("--test_dir")
-    parser.add_argument("--folder_destination", type=str, help="Name of destination folder.", required=True)    
+    parser.add_argument("--folder_destination", type=str, help="Path of destination folder.", required=True)    
     parser.add_argument("--ckpt", type=str, help='Path to model checkpoint.')
-    parser.add_argument("--int_list", type=int, nargs='+', help="List of integers")
-
-    # parser.add_argument("--N_mid", type=int, required=True)
-    # parser.add_argument("--N", type=int, default=5,required=True, help="Number of reverse steps")    
-    parser.add_argument("--weight_shat",type=float, default=0.8)
+    parser.add_argument("--N_second", type=int, required=True, default=5, help="Number of reverse steps in the second flow")
     parser.add_argument("--starting_state", type=str, choices=('noisy', 'mixture', 'enhanced'), required=True)
     args = parser.parse_args()
 
@@ -49,50 +36,31 @@ if __name__ == '__main__':
     
     
     checkpoint_file = args.ckpt
-    int_list = "_".join(map(str, args.int_list))
-    # raise("target_dir 부터 확인해")
-    
 
-    # Settings
     sr = 16000
-    print(args.int_list)
-    odesolver = args.odesolver
-    int_list = args.int_list
+
+    N_second = args.N_second
+    assert args.N_second>0
     
+    model = CTFSE_MODEL.load_from_checkpoint(
+        checkpoint_file, base_dir="",
+        batch_size=8, num_workers=4, kwargs=dict(gpu=False)
+    )
     
-    # Load score model
-    try:
-        model = VFModel_Finetuning.load_from_checkpoint(
-            checkpoint_file, base_dir="",
-            batch_size=8, num_workers=4, kwargs=dict(gpu=False)
-        )
-    except:
-        model = VFModel_Finetuning_SGMSE_CRP.load_from_checkpoint(
-            checkpoint_file, base_dir="", batch_size=8, num_workers=4, kwargs=dict(gpu=False)
-        )
-        
-    target_dir = f"/workspace/test_result/{dataset_name}_{model.mode}_{args.folder_destination}/"
+    target_dir = f"{args.folder_destination}/"
    
     ensure_dir(target_dir + "files/")
-    model.weight_shat = args.weight_shat
+
+
     reverse_starting_point = args.reverse_starting_point
     reverse_end_point = args.reverse_end_point
-    weight_shat = args.weight_shat
-    condition = args.condition
-    starting_state = args.starting_state
         
     model.ode.T_rev = reverse_starting_point
-        
     
     model.eval(no_ema=False)
     model.cuda()
 
     noisy_files = sorted(glob.glob('{}/*.wav'.format(noisy_dir)))
-    
-
-
-
-
     data = {"filename": [], "pesq": [], "estoi": [], "si_sdr": [], "si_sir": [], "si_sar": []}
     for cnt, noisy_file in tqdm(enumerate(noisy_files)):
         filename = noisy_file.split('/')[-1]
@@ -101,7 +69,6 @@ if __name__ == '__main__':
         x, _ = load(join(clean_dir, filename))
         y, _ = load(noisy_file)
 
-        #pdb.set_trace()        
 
          
         start = time.time()
@@ -113,34 +80,16 @@ if __name__ == '__main__':
         Y = torch.unsqueeze(model._forward_transform(model._stft(y.cuda())), 0)
         Y = pad_spec(Y)
         Y = Y.cuda()
+        
+        xt, _ = model.ode.prior_sampling(Y.shape,Y)
         with torch.no_grad():
-            for i in range(len(int_list)):
-                N = int_list[i]
-                if N==0:
-                    continue
-                if i == 0:
-                    xt, _ = model.ode.prior_sampling(Y.shape, Y)
-                    CONDITION = Y
-                else:
-                    ENHANCED = xt
-                    if starting_state == "enhanced":                        
-                        xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED)
-                    elif starting_state == "mixture":
-                        MIXTURE = 1/2*(Y+ENHANCED)
-                        xt, _ = model.ode.prior_sampling(Y.shape, MIXTURE)
-                    elif starting_state == "noisy":
-                        xt, _ = model.ode.prior_sampling(Y.shape,Y)
-                    
-                    if condition == "enhanced":
-                        CONDITION = ENHANCED
-                    elif condition =="mixture":
-                        
-                        CONDITION = 1/2*(Y+ENHANCED)
-                    elif condition == "noisy":
-                        CONDITION = Y
+            for i in range(N_second):
+                ENHANCED = xt
+                xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED)
+                CONDITION = 1/2*(Y+ENHANCED)
                     
                 xt = xt.to(Y.device)
-                timesteps = torch.linspace(reverse_starting_point, reverse_end_point, N, device=Y.device)
+                timesteps = torch.linspace(reverse_starting_point, reverse_end_point, N_second, device=Y.device)
                 for i in range(len(timesteps)):
                     t = timesteps[i]
                     if i == len(timesteps)-1:
@@ -157,7 +106,6 @@ if __name__ == '__main__':
         sample = sample.squeeze()
         
         x_hat = model.to_audio(sample, T_orig)
-        # print("완료")
         y = y * norm_factor
         x_hat = x_hat * norm_factor
         x_hat = x_hat.squeeze().cpu().numpy()
@@ -201,15 +149,9 @@ if __name__ == '__main__':
     text_file = join(target_dir, "_settings.txt")
     with open(text_file, 'w') as file:
         file.write("checkpoint file: {}\n".format(checkpoint_file))
-        
-        file.write("odesolver: {}\n".format(odesolver))
-        file.write("weight_shat: {}\n".format(model.weight_shat))
-        file.write("weight_y: {}\n".format(model.weight_y))
-        
-        file.write("N: {}\n".format(N))
-        
+        file.write("N_second: {}\n".format(N_second))
         file.write("Reverse starting point: {}\n".format(reverse_starting_point))
         file.write("Reverse end point: {}\n".format(reverse_end_point))
-        
         file.write("data: {}\n".format(args.test_dir))
+        
         

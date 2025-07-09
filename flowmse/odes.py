@@ -71,7 +71,6 @@ class FLOWMATCHING(ODE):
         super().__init__()        
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        self.T_sampling = T_sampling
         
     def copy(self):
         return FLOWMATCHING(self.sigma_min,self.sigma_max  )

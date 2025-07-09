@@ -25,14 +25,19 @@ if __name__ == '__main__':
     parser.add_argument("--reverse_end_point", type=float, default=0.03)
     parser.add_argument("--test_dir")
     parser.add_argument("--folder_destination", type=str, help="Path of destination folder.", required=True)    
-    parser.add_argument("--ckpt", type=str, help='Path to model checkpoint.')
+    parser.add_argument("--ckpt", type=str, required=True, help='Path to model checkpoint.')
     parser.add_argument("--N_second", type=int, required=True, default=5, help="Number of reverse steps in the second flow")
-    parser.add_argument("--starting_state", type=str, choices=('noisy', 'mixture', 'enhanced'), required=True)
+    
+    parser.add_argument("--eval_deb_mod", type=str)
+    
     args = parser.parse_args()
 
     clean_dir = join(args.test_dir, "test", "clean")
     noisy_dir = join(args.test_dir, "test", "noisy")
     dataset_name= os.path.basename(os.path.normpath(args.test_dir))
+    
+    
+    eval_deb_mod = args.eval_deb_mod
     
     
     checkpoint_file = args.ckpt
@@ -58,8 +63,10 @@ if __name__ == '__main__':
     
     model.eval(no_ema=False)
     model.cuda()
-
-    noisy_files = sorted(glob.glob('{}/*.wav'.format(noisy_dir)))
+    if eval_deb_mod == "debug":
+        noisy_files = sorted(glob.glob('{}/*.wav'.format(noisy_dir)))[0:10]
+    else:
+        noisy_files = sorted(glob.glob('{}/*.wav'.format(noisy_dir)))
     data = {"filename": [], "pesq": [], "estoi": [], "si_sdr": [], "si_sir": [], "si_sar": []}
     for cnt, noisy_file in tqdm(enumerate(noisy_files)):
         filename = noisy_file.split('/')[-1]

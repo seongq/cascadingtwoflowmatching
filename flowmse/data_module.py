@@ -22,16 +22,22 @@ def get_window(window_type, window_length):
 class Specs(Dataset):
     def __init__(self, data_dir, subset, dummy, shuffle_spec, num_frames,
             format='default', normalize="noisy", spec_transform=None,
-            stft_kwargs=None, **ignored_kwargs):
+            stft_kwargs=None,train_deb_mod=None, **ignored_kwargs):
 
         # Read file paths according to file naming format.
+        
+        self.train_deb_mod=train_deb_mod
         if format == "default":
-            self.clean_files = sorted(glob(join(data_dir, subset) + '/clean/*.wav'))
-            self.noisy_files = sorted(glob(join(data_dir, subset) + '/noisy/*.wav'))
+            if self.train_deb_mod == 'debug':
+                self.clean_files = sorted(glob(join(data_dir, subset) + '/clean/*.wav'))[0:10]
+                self.noisy_files = sorted(glob(join(data_dir, subset) + '/noisy/*.wav'))[0:10]
+            else:
+                self.clean_files = sorted(glob(join(data_dir, subset) + '/clean/*.wav'))
+                self.noisy_files = sorted(glob(join(data_dir, subset) + '/noisy/*.wav'))
         else:
             # Feel free to add your own directory format
             raise NotImplementedError(f"Directory format {format} unknown!")
-
+        
         self.dummy = dummy
         self.num_frames = num_frames
         self.shuffle_spec = shuffle_spec
@@ -92,7 +98,7 @@ class SpecsDataModule(pl.LightningDataModule):
     def add_argparse_args(parser):
         parser.add_argument("--base_dir", type=str, required=True, help="The base directory of the dataset. Should contain `train`, `valid` and `test` subdirectories, each of which contain `clean` and `noisy` subdirectories.")
         parser.add_argument("--format", type=str, choices=("default", "dns"), default="default", help="Read file paths according to file naming format.")
-        parser.add_argument("--batch_size", type=int, default=8, help="The batch size. 8 by default.")
+        parser.add_argument("--batch_size", type=int, default=2, help="The batch size. 8 by default.")
         parser.add_argument("--n_fft", type=int, default=510, help="Number of FFT bins. 510 by default.")   # to assure 256 freq bins
         parser.add_argument("--hop_length", type=int, default=128, help="Window hop length. 128 by default.")
         parser.add_argument("--num_frames", type=int, default=256, help="Number of frames for the dataset. 256 by default.")
@@ -103,15 +109,17 @@ class SpecsDataModule(pl.LightningDataModule):
         parser.add_argument("--spec_abs_exponent", type=float, default=0.5, help="Exponent e for the transformation abs(z)**e * exp(1j*angle(z)). 0.5 by default.")
         parser.add_argument("--normalize", type=str, choices=("clean", "noisy", "not"), default="noisy", help="Normalize the input waveforms by the clean signal, the noisy signal, or not at all.")
         parser.add_argument("--transform_type", type=str, choices=("exponent", "log", "none"), default="exponent", help="Spectogram transformation for input representation.")
+        parser.add_argument("--train_deb_mod", type=str, default=None)
         return parser
 
     def __init__(
         self, base_dir, format='default', batch_size=8,
         n_fft=510, hop_length=128, num_frames=256, window='hann',
         num_workers=4, dummy=False, spec_factor=0.15, spec_abs_exponent=0.5,
-        gpu=True, normalize='noisy', transform_type="exponent", **kwargs
+        gpu=True, normalize='noisy', transform_type="exponent",train_deb_mod=None, **kwargs
     ):
         super().__init__()
+        self.train_deb_mod = train_deb_mod
         self.base_dir = base_dir
         self.format = format
         self.batch_size = batch_size
@@ -137,14 +145,14 @@ class SpecsDataModule(pl.LightningDataModule):
         if stage == 'fit' or stage is None:
             self.train_set = Specs(data_dir=self.base_dir, subset='train',
                 dummy=self.dummy, shuffle_spec=True, format=self.format, 
-                normalize=self.normalize, **specs_kwargs)
+                normalize=self.normalize, train_deb_mod=self.train_deb_mod, **specs_kwargs)
             self.valid_set = Specs(data_dir=self.base_dir, subset='valid',
                 dummy=self.dummy, shuffle_spec=False, format=self.format,
-                normalize=self.normalize, **specs_kwargs)
+                normalize=self.normalize, train_deb_mod=self.train_deb_mod, **specs_kwargs)
         if stage == 'test' or stage is None:
             self.test_set = Specs(data_dir=self.base_dir, subset='test',
                 dummy=self.dummy, shuffle_spec=False, format=self.format,
-                normalize=self.normalize, **specs_kwargs)
+                normalize=self.normalize, train_deb_mod=self.train_deb_mod, **specs_kwargs)
 
     def spec_fwd(self, spec):
         if self.transform_type == "exponent":

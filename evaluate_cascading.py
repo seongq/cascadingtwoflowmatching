@@ -55,7 +55,6 @@ if __name__ == '__main__':
     reverse_starting_point = args.reverse_starting_point
     reverse_end_point = args.reverse_end_point
         
-    model.ode.T_rev = reverse_starting_point
     
     model.eval(no_ema=False)
     model.cuda()
@@ -82,6 +81,7 @@ if __name__ == '__main__':
         Y = Y.cuda()
         
         xt, _ = model.ode.prior_sampling(Y.shape,Y)
+        xt = xt -  model(xt,torch.ones(Y.shape[0], device=Y.device) , Y)
         with torch.no_grad():
             for i in range(N_second):
                 ENHANCED = xt

@@ -88,11 +88,16 @@ if __name__ == '__main__':
         Y = Y.cuda()
         
         xt, _ = model.ode.prior_sampling(Y.shape,Y)
-        xt = xt -  model(xt,torch.ones(Y.shape[0], device=Y.device) , Y)
+        
         with torch.no_grad():
-            ENHANCED = xt
-            xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED)
-            CONDITION = 1/2*(Y+ENHANCED)
+            xt = xt -  model(xt,torch.ones(Y.shape[0], device=Y.device) , Y)
+            #first flow results
+            
+            
+            #second flow starts            
+            ENHANCED = xt #second flow starting point's mean
+            xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED) #second flow starting point
+            CONDITION = 1/2*(Y+ENHANCED) #condition
             for i in range(N_second):
                     
                 xt = xt.to(Y.device)

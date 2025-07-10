@@ -90,10 +90,10 @@ if __name__ == '__main__':
         xt, _ = model.ode.prior_sampling(Y.shape,Y)
         xt = xt -  model(xt,torch.ones(Y.shape[0], device=Y.device) , Y)
         with torch.no_grad():
+            ENHANCED = xt
+            xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED)
+            CONDITION = 1/2*(Y+ENHANCED)
             for i in range(N_second):
-                ENHANCED = xt
-                xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED)
-                CONDITION = 1/2*(Y+ENHANCED)
                     
                 xt = xt.to(Y.device)
                 timesteps = torch.linspace(reverse_starting_point, reverse_end_point, N_second, device=Y.device)

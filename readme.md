@@ -30,9 +30,11 @@ python train.py --base_dir <your_dataset_dir>
 ```
 where `your_dataset_dir` should be a containing subdirectories `train/` and `valid/` (optionally `test/` as well). 
 
+Trained models are saved a director named "logs". 
+
 Each subdirectory must itself have two subdirectories `clean/` and `noisy/`, with the same filenames present in both. We currently only support training with `.wav` files.
 
-To get the training set WSJ0+CHiME3 (H), WSJ0+CHiME3 (L) and WSJ0+Reverb, we refer to https://github.com/sp-uhh/sgmse and (https://github.com/sp-uhh/storm).
+To get the training set WSJ0+CHiME3 (H), WSJ0+CHiME3 (L) and WSJ0+Reverb, we refer to https://github.com/sp-uhh/sgmse and https://github.com/sp-uhh/storm.
 
 To see all available training options, run python train.py --help. 
 
@@ -43,6 +45,9 @@ To see all available training options, run python train.py --help.
   ```bash
   python evaluate_cascading.py --test_dir <your_test_dataset_dir> --folder_destination <your_enh_result_save_dir> --ckpt <path_to_model_checkpoint> --N_second <num_of_time_steps_for_the_second_flow>
   ```
+
+
+"N_second" is the evaluation number of the numerical integration for the second flow. For the first flow, we set the number of evaluation to be 1. 
 
 `your_test_dataset_dir` should contain a subfolder `test` which contains subdirectories `clean` and `noisy`. `clean` and `noisy` should contain .wav files.
 ## Citations / References

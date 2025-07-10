@@ -127,7 +127,7 @@ class CTFSE_MODEL(pl.LightningModule):
     def _step(self, batch, batch_idx):
         x0, y = batch
         
-        
+        #x0 clean, y noise
         #first flow
         rdm = (1-torch.rand(x0.shape[0], device=x0.device)) * (self.T_rev - self.t_eps) + self.t_eps        
         t = torch.min(rdm, torch.tensor(self.T_rev))

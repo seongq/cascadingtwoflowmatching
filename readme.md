@@ -30,7 +30,7 @@ python train.py --base_dir <your_dataset_dir>
 ```
 where `your_dataset_dir` should be a containing subdirectories `train/` and `valid/` (optionally `test/` as well). 
 
-Trained models are saved a director named "logs". 
+Trained models are saved a directory named "logs". 
 
 Each subdirectory must itself have two subdirectories `clean/` and `noisy/`, with the same filenames present in both. We currently only support training with `.wav` files.
 

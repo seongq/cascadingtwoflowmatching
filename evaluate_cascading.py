@@ -98,18 +98,18 @@ if __name__ == '__main__':
             ENHANCED = xt #second flow starting point's mean
             xt, _ = model.ode.prior_sampling(Y.shape,ENHANCED) #second flow starting point
             CONDITION = 1/2*(Y+ENHANCED) #condition
-            for i in range(N_second):
-                    
-                xt = xt.to(Y.device)
-                timesteps = torch.linspace(reverse_starting_point, reverse_end_point, N_second, device=Y.device)
-                for i in range(len(timesteps)):
-                    t = timesteps[i]
-                    if i == len(timesteps)-1:
-                        dt = 0-t
-                    else:
-                        dt = timesteps[i+1]-t
-                    vect = torch.ones(Y.shape[0], device=Y.device)*t
-                    xt = xt + dt * model(xt, vect, CONDITION)            
+            # for i in range/N_second):
+                
+            xt = xt.to(Y.device)
+            timesteps = torch.linspace(reverse_starting_point, reverse_end_point, N_second, device=Y.device)
+            for i in range(len(timesteps)):
+                t = timesteps[i]
+                if i == len(timesteps)-1:
+                    dt = 0-t
+                else:
+                    dt = timesteps[i+1]-t
+                vect = torch.ones(Y.shape[0], device=Y.device)*t
+                xt = xt + dt * model(xt, vect, CONDITION)            
                 
         
         sample = xt.clone()

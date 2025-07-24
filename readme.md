@@ -38,7 +38,7 @@ To get the training set WSJ0+CHiME3 (H), WSJ0+CHiME3 (L) and WSJ0+Reverb, we ref
 
 To see all available training options, run python train.py --help. 
 ## Checkpoints
-We provide pretrained checkpoints for the models trained on WSJ0+CHiME3 (H), WSJ0+CHiME3 (L), WSJ0+Reverb, Voicebank/DEMNAD (VB-DMD). All checkpoints can be downloaded [here]([https://](https://drive.google.com/drive/folders/1G4ooyajfbyM4uPPTMxBAOLfglv5Uu3VT?usp=sharing))
+We provide pretrained checkpoints for the models trained on WSJ0+CHiME3 (H), WSJ0+CHiME3 (L), WSJ0+Reverb, Voicebank/DEMNAD (VB-DMD). All checkpoints can be downloaded [here](https://drive.google.com/drive/folders/1G4ooyajfbyM4uPPTMxBAOLfglv5Uu3VT?usp=sharing)
 
 ## Evaluation
   To evaluate on a test set, run

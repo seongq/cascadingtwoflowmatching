@@ -19,3 +19,6 @@ train_resume_conditioned.py
 __pycache__
 __pycache__/*
 __pycache__/
+kk.txt
+WSJ*
+VB_DMD*

@@ -8,7 +8,7 @@ This repository contains the PyTorch implementations for the paper:
     <img src="https://seongqjini.com/wp-content/uploads/2025/07/ctfse_interspeech2025_video-ezgif.com-video-to-gif-converter.gif" alt="FlowSE fig1" width="600"/>  
 </p>
 <p align="center">
-    <a href="">Presentation video in english</a>, <a href="">Presentation video in korean</a>, <a href="">Post about the work</a>, <a href=""> Paper link </a>
+    <a href="https://youtu.be/AjI5phpX1W4?si=hZ_QCFI2tk4P0v8H">Presentation video in english</a>, <a href="https://youtu.be/4Wk9Fwlb88I?si=pjFluJ5eLrHho0Cx">Presentation video in korean</a>, <a href="https://seongqjini.com/speech-enhancement-based-on-cascaded-two-flows-interpseech-2025-poster/">Post about the work</a>, <a href="https://www.isca-archive.org/interspeech_2025/lee25i_interspeech.html"> Paper link </a>
 </p>
 
 

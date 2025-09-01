@@ -7,7 +7,7 @@ This repository contains the PyTorch implementations for the paper:
 <p align="center">  
     <img src="https://seongqjini.com/wp-content/uploads/2025/07/ctfse_interspeech2025_video-ezgif.com-video-to-gif-converter.gif" alt="FlowSE fig1" width="600"/>  
 </p>
-<p>
+<p align="center">
     <a href="">Presentation video in english</a>, <a href="">Presentation video in korean</a>, <a href="">Post about the work</a>, <a href=""> Paper link </a>
 </p>
 

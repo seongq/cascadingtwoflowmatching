@@ -56,7 +56,7 @@ We provide pretrained checkpoints for the models trained on WSJ0+CHiME3 (H), WSJ
 
 `your_test_dataset_dir` should contain a subfolder `test` which contains subdirectories `clean` and `noisy`. `clean` and `noisy` should contain .wav files.
 ## Citations / References
-[1] Seonggyu Lee, Sein Cheong, Sangwook Han, Kihyuk Kim and Jong Won Shin, “*Speech Enhancement based on cascaded two flows*” in Proceedings of Interspeech, Aug. 2025 (accepted).
+[1] Seonggyu Lee, Sein Cheong, Sangwook Han, Kihyuk Kim and Jong Won Shin, “*Speech Enhancement based on cascaded two flows*” in Proceedings of Interspeech, Aug. 2025.
 <!-- 
 ``` bib
 @INPROCEEDINGS{10888274,
